@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -10,10 +11,13 @@ namespace Server.core.network
         System.Threading.Thread SocketThread;
         volatile bool keepReading = false;
         private Socket listener;
-        private Socket handler;
+//        private Socket handler;
 
+        private List<ClientNetwork> clientsHandler;
+        private int countId;
         public ServerNetwork()
         {
+            clientsHandler = new List<ClientNetwork>();
             StartServer();
         }
 
@@ -64,9 +68,12 @@ namespace Server.core.network
 
                     Console.WriteLine("Waiting for Connection");
 
-                    handler = listener.Accept();
+                    var handler = listener.Accept();
                     Console.WriteLine("Client Connected");    
                     data = null;
+
+                    ClientNetwork cl = new ClientNetwork(GenerateId(), handler);
+                    clientsHandler.Add(cl);
 
                     while (keepReading)
                     {
@@ -91,6 +98,10 @@ namespace Server.core.network
 
                     Console.WriteLine("Data Received: " +  data);
 
+                    //SEND MESSAGE TO CLIENT
+                    SendMessageToClient(handler,"client: " + cl.id + " connection complete");
+                    CheckClientIds();
+
                     System.Threading.Thread.Sleep(1);
                 }
             }
@@ -107,11 +118,70 @@ namespace Server.core.network
 
             SocketThread?.Abort();
             
-            if (handler != null && handler.Connected)
+            if (clientsHandler != null && clientsHandler.Count>0)
             {
-                handler.Disconnect(false);
-                Console.WriteLine("Disconnected!");
+                foreach (var t in clientsHandler)
+                {
+                    if(t.socket.Connected) t.socket.Disconnect(false);
+                }
+
+                Console.WriteLine("Disconnected All !");
             }
         }
+
+
+        private void CheckClientIds()
+        {
+            string clients = "";
+            foreach (var t in clientsHandler)
+            {
+                clients += t.id +  " , ";
+            }
+            Console.WriteLine("Active clients: " +  clients);
+        }
+
+
+        private int GenerateId()
+        {
+            countId++;
+            return countId;
+        }
+
+        private void SendMessageToClient(Socket handler, string message)
+        {
+            message += "<EOF>";
+            byte[] byteData = Encoding.ASCII.GetBytes(message);
+
+            foreach (var t in clientsHandler)
+            {
+                if (t.socket == handler)
+                {
+                    // Begin sending the data to the remote device.  
+                    handler.BeginSend(byteData, 0, byteData.Length, 0, new AsyncCallback(SendCallback), handler);
+                }
+            }
+        }
+
+        private static void SendCallback(IAsyncResult ar)
+        {
+            try
+            {
+                // Retrieve the socket from the state object.  
+                Socket handler = (Socket)ar.AsyncState;
+
+                // Complete sending the data to the remote device.  
+                int bytesSent = handler.EndSend(ar);
+                Console.WriteLine("Sent {0} bytes to client.", bytesSent);
+
+                handler.Shutdown(SocketShutdown.Both);
+                handler.Close();
+
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+            }
+        }
+
     }
 }
