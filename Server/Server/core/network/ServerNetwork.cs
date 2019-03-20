@@ -3,20 +3,23 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
+using Server.core.game;
 
 namespace Server.core.network
 {
-    public class ServerNetwork
+    public class ServerNetwork: ServerNetworkServices
     {
-        System.Threading.Thread SocketThread;
+        private Thread SocketThread;
         volatile bool keepReading = false;
         private Socket listener;
-//        private Socket handler;
-
         private List<ClientNetwork> clientsHandler;
         private int countId;
-        public ServerNetwork()
+        private ClientNetworkServices clientNetworkServices;
+
+        public ServerNetwork(ClientNetworkServices clientNetworkServices)
         {
+            this.clientNetworkServices = clientNetworkServices;
             clientsHandler = new List<ClientNetwork>();
             StartServer();
         }
@@ -62,10 +65,12 @@ namespace Server.core.network
                 listener.Bind(localEndPoint);
                 listener.Listen(10);
 
+                clientNetworkServices.OnServerUp(this);
+
                 while (true)
                 {
                     keepReading = true;
-
+                    
                     Console.WriteLine("Waiting for Connection");
 
                     var handler = listener.Accept();
@@ -74,35 +79,42 @@ namespace Server.core.network
 
                     ClientNetwork cl = new ClientNetwork(GenerateId(), handler);
                     clientsHandler.Add(cl);
+                    clientNetworkServices.OnConnectionCallback(cl);
 
                     while (keepReading)
                     {
                         bytes = new byte[1024];
                         int bytesRec = handler.Receive(bytes);
-                        Console.WriteLine("Received from Server");
-
+                       
                         if (bytesRec <= 0)
                         {
                             keepReading = false;
                             handler.Disconnect(true);
+                            Console.WriteLine("handler disconnected");
                             break;
                         }
 
                         data += Encoding.ASCII.GetString(bytes, 0, bytesRec);
+                        
+                        if (data.IndexOf("<EOF>", StringComparison.Ordinal) > -1) break;
 
-                        
-                        if (data.IndexOf("<EOF>") > -1) break;
-                        
-                        System.Threading.Thread.Sleep(1);
+                        string dataFormat = data.IndexOf("<EOF>", StringComparison.Ordinal) > -1 ? data.Replace("<EOF>", "") : data;
+
+                        Console.WriteLine("Server Received: " + dataFormat);
+
+                        if (dataFormat == RequestType.CONNECTION)
+                            SendMessageToClient(cl, RequestType.CONNECTION);
+                        else
+                            clientNetworkServices.OnReceiveMessage(dataFormat);
+
+                        data = null;
+                        Thread.Sleep(1);
                     }
 
-                    Console.WriteLine("Data Received: " +  data);
 
-                    //SEND MESSAGE TO CLIENT
-                    SendMessageToClient(handler,"client: " + cl.id + " connection complete");
                     CheckClientIds();
 
-                    System.Threading.Thread.Sleep(1);
+                   Thread.Sleep(1);
                 }
             }
             catch (Exception e)
@@ -137,7 +149,9 @@ namespace Server.core.network
             {
                 clients += t.id +  " , ";
             }
+
             Console.WriteLine("Active clients: " +  clients);
+
         }
 
 
@@ -147,17 +161,19 @@ namespace Server.core.network
             return countId;
         }
 
-        private void SendMessageToClient(Socket handler, string message)
+//        private void SendMessageToClient(Socket handler, string message)
+        private void SendMessageToClient(ClientNetwork client, string message)
         {
-            message += "<EOF>";
+            //message += "<EOF>";
             byte[] byteData = Encoding.ASCII.GetBytes(message);
 
             foreach (var t in clientsHandler)
             {
-                if (t.socket == handler)
+                if (t.socket == client.socket)
                 {
+                    Console.WriteLine("SendMessageToClient : " +  message);
                     // Begin sending the data to the remote device.  
-                    handler.BeginSend(byteData, 0, byteData.Length, 0, new AsyncCallback(SendCallback), handler);
+                    client.socket.BeginSend(byteData, 0, byteData.Length, 0, new AsyncCallback(SendCallback), client.socket);
                 }
             }
         }
@@ -172,9 +188,9 @@ namespace Server.core.network
                 // Complete sending the data to the remote device.  
                 int bytesSent = handler.EndSend(ar);
                 Console.WriteLine("Sent {0} bytes to client.", bytesSent);
-
-                handler.Shutdown(SocketShutdown.Both);
-                handler.Close();
+                Console.WriteLine("-----------------------");
+                //handler.Shutdown(SocketShutdown.Both);
+                //handler.Close();
 
             }
             catch (Exception e)
@@ -183,5 +199,14 @@ namespace Server.core.network
             }
         }
 
+        public void SendMessageToClients(List<ClientNetwork> clients, string data)
+        {
+            foreach (var current in clients)
+            {
+                SendMessageToClient(current, data);
+            }
+        }
+
+        
     }
 }
