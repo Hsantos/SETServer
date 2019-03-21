@@ -1,10 +1,13 @@
 ﻿using System;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace Server.core.game.card
 {
     [Serializable]
     public class CardFactory
     {
+        [JsonConverter(typeof(StringEnumConverter))]
         public enum COLOR
         {
             GREEN,
@@ -12,6 +15,7 @@ namespace Server.core.game.card
             PURPLE
         }
 
+        [JsonConverter(typeof(StringEnumConverter))]
         public enum AMOUNT
         {
             ONE ,
@@ -19,6 +23,7 @@ namespace Server.core.game.card
             THREE 
         }
 
+        [JsonConverter(typeof(StringEnumConverter))]
         public enum SHADING
         {
             SOLID,
@@ -26,6 +31,7 @@ namespace Server.core.game.card
             OUTLINED
         }
 
+        [JsonConverter(typeof(StringEnumConverter))]
         public enum SHAPE
         {
             OVAL,
