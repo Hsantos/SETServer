@@ -4,7 +4,9 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using Newtonsoft.Json;
 using Server.core.game;
+using Server.core.network.request;
 
 namespace Server.core.network
 {
@@ -100,12 +102,16 @@ namespace Server.core.network
 
                         string dataFormat = data.IndexOf("<EOF>", StringComparison.Ordinal) > -1 ? data.Replace("<EOF>", "") : data;
 
+                        ClientReply clientReply = JsonConvert.DeserializeObject<ClientReply>(dataFormat);
                         Console.WriteLine("Server Received: " + dataFormat);
 
-                        if (dataFormat == RequestType.CONNECTION)
-                            SendMessageToClient(cl, RequestType.CONNECTION);
+                        if (clientReply.action == RequestAction.START_SESSION)
+                        {
+                            cl.SetName(clientReply.data);
+                            SendMessageToClient(cl, new ServerReply(RequestAction.START_SESSION, ""));
+                        }
                         else
-                            clientNetworkServices.OnReceiveMessage(dataFormat);
+                            clientNetworkServices.OnReceiveMessage(clientReply);
 
                         data = null;
                         Thread.Sleep(1);
@@ -162,9 +168,11 @@ namespace Server.core.network
         }
 
 //        private void SendMessageToClient(Socket handler, string message)
-        private void SendMessageToClient(ClientNetwork client, string message)
+        private void SendMessageToClient(ClientNetwork client, ServerReply reply)
         {
             //message += "<EOF>";
+            string message = JsonConvert.SerializeObject(reply);
+
             byte[] byteData = Encoding.ASCII.GetBytes(message);
 
             foreach (var t in clientsHandler)
@@ -199,12 +207,9 @@ namespace Server.core.network
             }
         }
 
-        public void SendMessageToClients(List<ClientNetwork> clients, string data)
+        public void SendMessageToClients(List<ClientNetwork> clients, ServerReply reply)
         {
-            foreach (var current in clients)
-            {
-                SendMessageToClient(current, data);
-            }
+            foreach (var current in clients) SendMessageToClient(current, reply);
         }
 
         

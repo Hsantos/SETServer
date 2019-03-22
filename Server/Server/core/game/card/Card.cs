@@ -26,5 +26,11 @@ namespace Server.core.game.card
         {
             return "[" + color + "," + amount + "," + shading + "," + shape + "]";
         }
+
+        public override bool Equals(object obj)
+        {
+            Card cd = obj as Card;
+            return color == cd.color && amount == cd.amount && shading == cd.shading && shape == cd.shape;
+        }
     }
 }

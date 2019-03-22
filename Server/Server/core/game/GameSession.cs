@@ -40,6 +40,7 @@ namespace Server.core.game
             openedList = new List<Card>();
             defaultCards = OpenCards(TOTAL_CARDS_IN_DEFAULT_ROUND);
             services.notifyDefaultCards(defaultCards);
+            CheckAnyMatch();
         }
 
         public void OpenCardsAfterMatch(int totalToOpen)
@@ -106,7 +107,7 @@ namespace Server.core.game
 
                     if (behaviour.IsMatch(new List<Card>() { cardOne, cardTwo, cardThree }))
                     {
-                        //Debug.LogWarning("POSSIBLE MATCH: " + cardOne + " | " + cardTwo + " | " + cardThree);
+                        Console.WriteLine("POSSIBLE MATCH: " + cardOne + " | " + cardTwo + " | " + cardThree);
                         anyMatch = true;
                     }
                 }

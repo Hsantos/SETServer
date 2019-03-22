@@ -6,6 +6,7 @@ using Server.core.game.card;
 using Server.core.network;
 using Newtonsoft.Json;
 using Server.core.game.client;
+using Server.core.network.request;
 
 namespace Server.core.game
 {
@@ -40,11 +41,20 @@ namespace Server.core.game
             throw new NotImplementedException();
         }
 
-        public void OnReceiveMessage(string data)
+        public void OnReceiveMessage(ClientReply reply)
         {
-            if (data == RequestType.DEFAULT_CARDS)
+            switch (reply.action)
             {
-                SendMessage(clients, session.defaultCards);
+                case RequestAction.DEFAULT_CARDS:
+                    SendMessage(reply.action,clients, session.defaultCards);
+                break;
+                case RequestAction.MATCH:
+                    List<Card> cards = JsonConvert.DeserializeObject<List<Card>>(reply.data);
+                    session.CheckMatch(cards);
+                break;
+                    
+                default:
+                    throw  new Exception("UNKNOWN REPLY: "  + reply);
             }
         }
 
@@ -53,12 +63,11 @@ namespace Server.core.game
             session = new GameSession(this);
         } 
         
-
         public void notifyDefaultCards(List<Card> cards){}
 
-        public void notifyOpenCardsAfterMatch(List<Card> cards)
+        public void notifyOpenCardsAfterMatch(List<Card> cards)    
         {
-            throw new NotImplementedException();
+            //SendMessage(RequestAction.CARDS_AFTER_MATCH, clients, cards);
         }
 
         public void notifyExtraCards(List<Card> cards)
@@ -68,7 +77,7 @@ namespace Server.core.game
 
         public void notifyMatchCompleted(List<Card> cards)
         {
-            throw new NotImplementedException();
+            SendMessage(RequestAction.MATCH, clients, cards);
         }
 
         public void notifyEndSession()
@@ -76,12 +85,15 @@ namespace Server.core.game
             throw new NotImplementedException();
         }
 
-        private void SendMessage(ClientNetwork client, List<Card> data) => SendMessage(new List<ClientNetwork>() { client }, data);
-        private void SendMessage(List<ClientNetwork> clients, List<Card> data)
+        private void SendMessage(RequestAction action,ClientNetwork client, List<Card> data) => SendMessage(action,new List<ClientNetwork>() { client }, data);
+        private void SendMessage(RequestAction action, List<ClientNetwork> clients, List<Card> data)
         {
-            ClientDataRequested request = new ClientDataRequested(){cards = data};
-            var json = JsonConvert.SerializeObject(request);
-            serverInstance.SendMessageToClients(clients, json);
+            ServerReply reply = new ServerReply(action, JsonConvert.SerializeObject(data));
+            serverInstance.SendMessageToClients(clients, reply);
+
+            //            ClientDataRequested request = new ClientDataRequested(){cards = data};
+            //            var json = JsonConvert.SerializeObject(request);
+            //            serverInstance.SendMessageToClients(clients, json);
         }
 
         

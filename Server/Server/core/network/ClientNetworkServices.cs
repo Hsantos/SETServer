@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Server.core.network.request;
 
 namespace Server.core.network
 {
@@ -11,6 +12,6 @@ namespace Server.core.network
         void OnServerUp(ServerNetworkServices server);
         void OnConnectionCallback(ClientNetwork client);
         void OnSendMessage(string data);
-        void OnReceiveMessage(string data);
+        void OnReceiveMessage(ClientReply reply);
     }
 }
