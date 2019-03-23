@@ -17,13 +17,10 @@ namespace Server.core.game
         public const int TOTAL_CARDS_IN_DEFAULT_ROUND = 12;
         public const int TOTAL_CARDS_IN_EXTRA_ROUND = 3;
         public const int TOTAL_CARDS_TO_MATCH = 3;
-        public int userPoints { get; private set; }
-        public int timeSession { get; private set; }
         private List<Card> openedList;
 
         //server session
         public List<Card> defaultCards { get; set; }
-
 
         public GameSession(GameServices services)
         {
@@ -31,8 +28,6 @@ namespace Server.core.game
             behaviour = new SessionBehaviour();
             cardSession = behaviour.GenerateShuffleCard().ToList();
             OpenDefaultCards();
-            userPoints = 0;
-            timeSession = 60;
         }
 
         private void OpenDefaultCards()
@@ -73,20 +68,26 @@ namespace Server.core.game
             return currentOpen;
         }
 
+        public bool IsMatch(List<Card> matchList)
+        {
+            return behaviour.IsMatch(matchList);
+        }
+
         public void CheckMatch(List<Card> matchList)
         {
             //        behaviour.IsMatch(matchList);
             //        services.notifyMatchCompleted(null);
 
-            if (behaviour.IsMatch(matchList))
+            Console.WriteLine("Start Check Match: "  +  matchList.Count  + " | " + IsMatch(matchList));
+
+            if (IsMatch(matchList))
             {
-                for (int i = 0; i < matchList.Count; i++)
+                foreach (var t in matchList)
                 {
-                    openedList.Remove(matchList[i]);
+                    openedList.Remove(t);
                 }
                 services.notifyMatchCompleted(matchList);
                 OpenCardsAfterMatch(matchList.Count);
-                userPoints++;
             }
             else services.notifyMatchCompleted(null);
         }
@@ -123,11 +124,5 @@ namespace Server.core.game
             return index;
         }
 
-        public int UserTime()
-        {
-            if (timeSession > 0) timeSession--;
-            else services.notifyEndSession();
-            return timeSession;
-        }
     }
 }

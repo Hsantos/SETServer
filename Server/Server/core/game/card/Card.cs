@@ -6,20 +6,23 @@ using System.Threading.Tasks;
 
 namespace Server.core.game.card
 {
-    [System.Serializable]
+    [Serializable]
     public class Card
     {
-        public CardFactory.COLOR color { get; private set; }
-        public CardFactory.AMOUNT amount { get; private set; }
-        public CardFactory.SHADING shading { get; private set; }
-        public CardFactory.SHAPE shape { get; private set; }
+        public CardFactory.COLOR color { get; set; }
+        public CardFactory.AMOUNT amount { get; set; }
+        public CardFactory.SHADING shading { get; set; }
+        public CardFactory.SHAPE shape { get; set; }
+        public int id { get; set; }
 
-        public Card(CardFactory.COLOR color, CardFactory.AMOUNT amount, CardFactory.SHADING shading, CardFactory.SHAPE shape)
+        public Card(int id, CardFactory.COLOR color, CardFactory.AMOUNT amount, CardFactory.SHADING shading, CardFactory.SHAPE shape)
         {
+            this.id = id;
             this.color = color;
             this.amount = amount;
             this.shading = shading;
             this.shape = shape;
+
         }
 
         public override string ToString()
@@ -30,7 +33,7 @@ namespace Server.core.game.card
         public override bool Equals(object obj)
         {
             Card cd = obj as Card;
-            return color == cd.color && amount == cd.amount && shading == cd.shading && shape == cd.shape;
+            return id == cd.id;
         }
     }
 }

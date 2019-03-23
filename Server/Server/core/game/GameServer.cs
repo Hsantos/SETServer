@@ -41,7 +41,7 @@ namespace Server.core.game
             throw new NotImplementedException();
         }
 
-        public void OnReceiveMessage(ClientReply reply)
+        public void OnReceiveMessage(ClientNetwork clientNetwork, ClientReply reply)
         {
             switch (reply.action)
             {
@@ -49,12 +49,28 @@ namespace Server.core.game
                     SendMessage(reply.action,clients, session.defaultCards);
                 break;
                 case RequestAction.MATCH:
+
                     List<Card> cards = JsonConvert.DeserializeObject<List<Card>>(reply.data);
+
+                    if (session.IsMatch(cards)) UpdatePoints(clientNetwork);
+                   
                     session.CheckMatch(cards);
+
                 break;
                     
                 default:
                     throw  new Exception("UNKNOWN REPLY: "  + reply);
+            }
+        }
+
+        private void UpdatePoints(ClientNetwork clientNetwork)
+        {
+            foreach (var t in clients)
+            {
+                if (t.id == clientNetwork.id)
+                {
+                    clientNetwork.UpdatePoints();
+                }
             }
         }
 
@@ -65,15 +81,13 @@ namespace Server.core.game
         
         public void notifyDefaultCards(List<Card> cards){}
 
-        public void notifyOpenCardsAfterMatch(List<Card> cards)    
-        {
-            //SendMessage(RequestAction.CARDS_AFTER_MATCH, clients, cards);
-        }
+        public void notifyOpenCardsAfterMatch(List<Card> cards)=> SendMessage(RequestAction.CARDS_AFTER_MATCH, clients, cards);
 
         public void notifyExtraCards(List<Card> cards)
         {
-            throw new NotImplementedException();
-        }
+//            SendMessage(RequestAction.EXTRA_CARDS, clients, cards);
+        } 
+        
 
         public void notifyMatchCompleted(List<Card> cards)
         {
@@ -82,7 +96,15 @@ namespace Server.core.game
 
         public void notifyEndSession()
         {
-            throw new NotImplementedException();
+            List<ClientPoint> points  = new List<ClientPoint>();
+
+            foreach (var t in clients)
+                points.Add(new ClientPoint(t.name, t.points));
+
+            ClientRanking ranking = new ClientRanking(points);
+
+            ServerReply reply = new ServerReply(RequestAction.END_SESSION, JsonConvert.SerializeObject(ranking));
+            serverInstance.SendMessageToClients(clients, reply);
         }
 
         private void SendMessage(RequestAction action,ClientNetwork client, List<Card> data) => SendMessage(action,new List<ClientNetwork>() { client }, data);

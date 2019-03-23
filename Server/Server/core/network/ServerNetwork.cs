@@ -111,7 +111,7 @@ namespace Server.core.network
                             SendMessageToClient(cl, new ServerReply(RequestAction.START_SESSION, ""));
                         }
                         else
-                            clientNetworkServices.OnReceiveMessage(clientReply);
+                            clientNetworkServices.OnReceiveMessage(cl, clientReply);
 
                         data = null;
                         Thread.Sleep(1);
