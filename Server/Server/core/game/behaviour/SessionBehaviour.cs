@@ -141,7 +141,7 @@ namespace Server.core.game.behaviour
 
         public bool IsMatch(List<Card> matchList)
         {
-            bool check = false;
+            bool check;
 
             int equalShapes = matchList.Select(x => x.shape).Distinct().Count();
             int equalAmount = matchList.Select(x => x.amount).Distinct().Count();
@@ -153,7 +153,7 @@ namespace Server.core.game.behaviour
                      (equalColor == GameSession.TOTAL_CARDS_TO_MATCH || equalColor == 1) &&
                      (equalShading == GameSession.TOTAL_CARDS_TO_MATCH || equalShading == 1);
 
-            Console.WriteLine(check +  " | "+ equalShapes + " | " + equalAmount + " | " + equalColor + " | " + equalShading);
+            //Console.WriteLine(check +  " | "+ equalShapes + " | " + equalAmount + " | " + equalColor + " | " + equalShading);
 
             return check;
         }

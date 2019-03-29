@@ -11,6 +11,7 @@ namespace Server.core.network
     {
         void OnServerUp(ServerNetworkServices server);
         void OnConnectionCallback(ClientNetwork client);
+        void OnStartSession();
         void OnReceiveMessage(ClientNetwork clientNetWork, ClientReply reply);
     }
 }

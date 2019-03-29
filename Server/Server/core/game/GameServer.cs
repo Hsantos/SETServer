@@ -15,6 +15,7 @@ namespace Server.core.game
         private ServerNetworkServices serverInstance;
         private List<ClientNetwork> clients;
         private GameSession session;
+        public const int TOTAL_CLIENTS_TO_START = 1;
         public GameServer()
         {
             clients = new List<ClientNetwork>();
@@ -29,11 +30,11 @@ namespace Server.core.game
         public void OnConnectionCallback(ClientNetwork data)
         {
             clients.Add(data);
+        }
 
-            if (clients.Count == 1)
-            {
-                StartSession();
-            }
+        public void OnStartSession()
+        {
+            StartSession();
         }
 
         public void OnSendMessage(string data)
@@ -57,7 +58,13 @@ namespace Server.core.game
                     session.CheckMatch(cards);
 
                 break;
-                    
+
+                case RequestAction.CARDS_AFTER_MATCH:
+
+                    session.OpenCardsAfterMatch(3);
+
+                    break;
+
                 default:
                     throw  new Exception("UNKNOWN REPLY: "  + reply);
             }
@@ -76,6 +83,7 @@ namespace Server.core.game
 
         private void StartSession()
         {
+            Console.WriteLine("Init Session");
             session = new GameSession(this);
         } 
         
@@ -88,12 +96,8 @@ namespace Server.core.game
 //            SendMessage(RequestAction.EXTRA_CARDS, clients, cards);
         } 
         
-
-        public void notifyMatchCompleted(List<Card> cards)
-        {
-            SendMessage(RequestAction.MATCH, clients, cards);
-        }
-
+        public void notifyMatchCompleted(List<Card> cards)=> SendMessage(RequestAction.MATCH, clients, cards);
+        
         public void notifyEndSession()
         {
             List<ClientPoint> points  = new List<ClientPoint>();

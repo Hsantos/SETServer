@@ -18,7 +18,7 @@ namespace Server.core.network
         private List<ClientNetwork> clientsHandler;
         private int countId;
         private ClientNetworkServices clientNetworkServices;
-
+        private bool sessionStarted = false;
         public ServerNetwork(ClientNetworkServices clientNetworkServices)
         {
             this.clientNetworkServices = clientNetworkServices;
@@ -58,7 +58,7 @@ namespace Server.core.network
             Console.WriteLine("IP: " + GetIPAddress());
 
             IPAddress[] ipArray = Dns.GetHostAddresses(GetIPAddress());
-            IPEndPoint localEndPoint = new IPEndPoint(ipArray[0], 1755);
+            IPEndPoint localEndPoint = new IPEndPoint(ipArray[0], 8080);//1755
 
             listener = new Socket(ipArray[0].AddressFamily,SocketType.Stream, ProtocolType.Tcp);
 
@@ -82,7 +82,7 @@ namespace Server.core.network
                     ClientNetwork cl = new ClientNetwork(GenerateId(), handler);
                     clientsHandler.Add(cl);
                     clientNetworkServices.OnConnectionCallback(cl);
-
+                   
                     while (keepReading)
                     {
                         bytes = new byte[1024];
@@ -105,13 +105,28 @@ namespace Server.core.network
                         ClientReply clientReply = JsonConvert.DeserializeObject<ClientReply>(dataFormat);
                         Console.WriteLine("Server Received: " + dataFormat);
 
-                        if (clientReply.action == RequestAction.START_SESSION)
+                        cl.SetName(clientReply.data);
+
+                        if (clientsHandler.Count == GameServer.TOTAL_CLIENTS_TO_START && !sessionStarted)
                         {
-                            cl.SetName(clientReply.data);
-                            SendMessageToClient(cl, new ServerReply(RequestAction.START_SESSION, ""));
+                            sessionStarted = true;
+                            clientNetworkServices.OnStartSession();
                         }
-                        else
-                            clientNetworkServices.OnReceiveMessage(cl, clientReply);
+
+                        if (sessionStarted)
+                        {
+                            if (clientReply.action == RequestAction.START_SESSION)
+                            {
+                                for (int i = 0; i < clientsHandler.Count; i++)
+                                {
+                                    SendMessageToClient(clientsHandler[i], new ServerReply(RequestAction.START_SESSION, ""));
+                                }
+
+                            }
+                            else
+                                clientNetworkServices.OnReceiveMessage(cl, clientReply);
+                        }
+                      
 
                         data = null;
                         Thread.Sleep(1);

@@ -87,7 +87,6 @@ namespace Server.core.game
                     openedList.Remove(t);
                 }
                 services.notifyMatchCompleted(matchList);
-                OpenCardsAfterMatch(matchList.Count);
             }
             else services.notifyMatchCompleted(null);
         }
